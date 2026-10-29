@@ -29,12 +29,12 @@ export const HIRAGANA_DATA: KanaItem[] = [
   { id: 'h-te', character: 'て', romaji: 'te', type: 'hiragana', category: 'seion', example: { word: 'て (te)', reading: 'te', meaning: 'Bàn tay' } },
   { id: 'h-to', character: 'と', romaji: 'to', type: 'hiragana', category: 'seion', example: { word: 'ともだち (tomodachi)', reading: 'tomodachi', meaning: 'Bạn bè' } },
 
-  // // Na row
-  // { id: 'h-na', character: 'な', romaji: 'na', type: 'hiragana', category: 'seion', example: { word: 'なつ (natsu)', reading: 'natsu', meaning: 'Mùa hè' } },
-  // { id: 'h-ni', character: 'に', romaji: 'ni', type: 'hiragana', category: 'seion', example: { word: 'にほん (nihon)', reading: 'nihon', meaning: 'Nhật Bản' } },
-  // { id: 'h-nu', character: 'ぬ', romaji: 'nu', type: 'hiragana', category: 'seion', example: { word: 'ぬいぐるみ (nuigurumi)', reading: 'nuigurumi', meaning: 'Gấu bông' } },
-  // { id: 'h-ne', character: 'ね', romaji: 'ne', type: 'hiragana', category: 'seion', example: { word: 'ねこ (neko)', reading: 'neko', meaning: 'Con mèo' } },
-  // { id: 'h-no', character: 'の', romaji: 'no', type: 'hiragana', category: 'seion', example: { word: 'のみもの (nomimono)', reading: 'nomimono', meaning: 'Đồ uống' } },
+  // Na row
+  { id: 'h-na', character: 'な', romaji: 'na', type: 'hiragana', category: 'seion', example: { word: 'なつ (natsu)', reading: 'natsu', meaning: 'Mùa hè' } },
+  { id: 'h-ni', character: 'に', romaji: 'ni', type: 'hiragana', category: 'seion', example: { word: 'にほん (nihon)', reading: 'nihon', meaning: 'Nhật Bản' } },
+  { id: 'h-nu', character: 'ぬ', romaji: 'nu', type: 'hiragana', category: 'seion', example: { word: 'ぬいぐるみ (nuigurumi)', reading: 'nuigurumi', meaning: 'Gấu bông' } },
+  { id: 'h-ne', character: 'ね', romaji: 'ne', type: 'hiragana', category: 'seion', example: { word: 'ねこ (neko)', reading: 'neko', meaning: 'Con mèo' } },
+  { id: 'h-no', character: 'の', romaji: 'no', type: 'hiragana', category: 'seion', example: { word: 'のみもの (nomimono)', reading: 'nomimono', meaning: 'Đồ uống' } },
 
   // // Ha row
   // { id: 'h-ha', character: 'は', romaji: 'ha', type: 'hiragana', category: 'seion', example: { word: 'はな (hana)', reading: 'hana', meaning: 'Bông hoa' } },

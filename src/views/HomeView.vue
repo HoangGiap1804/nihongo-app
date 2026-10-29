@@ -15,6 +15,11 @@ const studyMode = ref<StudyMode>('order')
 const studyDirection = ref<StudyDirection>('romaji-first')
 const currentIndex = ref(0)
 const isFlipped = ref(false)
+const isTransitioning = ref(false)
+
+// Thẻ hiển thị tạm thời khi đang lật chuyển trang
+const frontCard = ref<KanaItem | null>(null)
+const backCard = ref<KanaItem | null>(null)
 
 // Randomized cards
 const randomizedCards = ref<KanaItem[]>([])
@@ -37,6 +42,8 @@ watch(
     }
     currentIndex.value = 0
     isFlipped.value = false
+    frontCard.value = null
+    backCard.value = null
   },
   { immediate: true }
 )
@@ -50,22 +57,69 @@ const currentCard = computed<KanaItem>(() => {
 })
 
 const restartStudy = () => {
-  confetti({
-    particleCount: 50,
-    spread: 60,
-    origin: { y: 0.7 }
-  })
-  if (studyMode.value === 'random') {
-    randomizedCards.value = shuffle(HIRAGANA_DATA)
+  if (isTransitioning.value) return
+
+  const nextDeck = studyMode.value === 'random' ? shuffle(HIRAGANA_DATA) : HIRAGANA_DATA
+
+  if (isFlipped.value) {
+    const current = currentCard.value
+    const first = nextDeck[0]
+
+    backCard.value = current
+    frontCard.value = first
+    isTransitioning.value = true
+    isFlipped.value = false
+
+    setTimeout(() => {
+      if (studyMode.value === 'random') {
+        randomizedCards.value = nextDeck
+      }
+      currentIndex.value = 0
+      frontCard.value = null
+      backCard.value = null
+      isTransitioning.value = false
+      confetti({
+        particleCount: 50,
+        spread: 60,
+        origin: { y: 0.7 }
+      })
+    }, 320)
+  } else {
+    if (studyMode.value === 'random') {
+      randomizedCards.value = nextDeck
+    }
+    currentIndex.value = 0
+    confetti({
+      particleCount: 50,
+      spread: 60,
+      origin: { y: 0.7 }
+    })
   }
-  currentIndex.value = 0
-  isFlipped.value = false
 }
 
 const nextCard = () => {
+  if (isTransitioning.value) return
+
   if (currentIndex.value < cards.value.length - 1) {
-    currentIndex.value++
-    isFlipped.value = false
+    if (isFlipped.value) {
+      // Đang mở mặt sau: lật về mặt trước và mặt trước là chữ mới luôn!
+      const current = currentCard.value
+      const next = cards.value[currentIndex.value + 1]
+
+      backCard.value = current
+      frontCard.value = next
+      isTransitioning.value = true
+      isFlipped.value = false
+
+      setTimeout(() => {
+        currentIndex.value++
+        frontCard.value = null
+        backCard.value = null
+        isTransitioning.value = false
+      }, 320)
+    } else {
+      currentIndex.value++
+    }
   } else {
     // Đã học hết số lượng, reload để học lại
     restartStudy()
@@ -73,30 +127,58 @@ const nextCard = () => {
 }
 
 const prevCard = () => {
+  if (isTransitioning.value) return
+
   if (currentIndex.value > 0) {
-    currentIndex.value--
-    isFlipped.value = false
+    if (isFlipped.value) {
+      // Đang mở mặt sau: lật về mặt trước của chữ cái trước đó!
+      const current = currentCard.value
+      const prev = cards.value[currentIndex.value - 1]
+
+      backCard.value = current
+      frontCard.value = prev
+      isTransitioning.value = true
+      isFlipped.value = false
+
+      setTimeout(() => {
+        currentIndex.value--
+        frontCard.value = null
+        backCard.value = null
+        isTransitioning.value = false
+      }, 320)
+    } else {
+      currentIndex.value--
+    }
   }
 }
 
 const toggleFlip = () => {
+  if (isTransitioning.value) return
   isFlipped.value = !isFlipped.value
 }
 
 const setDirection = (dir: StudyDirection) => {
-  studyDirection.value = dir
+  if (isTransitioning.value || studyDirection.value === dir) return
   isFlipped.value = false
+  studyDirection.value = dir
+}
+
+const setMode = (mode: StudyMode) => {
+  if (isTransitioning.value || studyMode.value === mode) return
+  isFlipped.value = false
+  studyMode.value = mode
 }
 
 // Keyboard shortcuts
 const handleKeydown = (e: KeyboardEvent) => {
-  if (e.code === 'Space' || e.code === 'Enter') {
+  if (isTransitioning.value) return
+  if (e.code === 'Space' || e.code === 'Enter' || e.code === 'ArrowTop' || e.code === 'ArrowBottom' || e.code === 'KeyW' || e.code === 'KeyS') {
     e.preventDefault()
     toggleFlip()
-  } else if (e.code === 'ArrowRight') {
+  } else if (e.code === 'ArrowRight' || e.code === 'KeyD') {
     e.preventDefault()
     nextCard()
-  } else if (e.code === 'ArrowLeft') {
+  } else if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
     e.preventDefault()
     prevCard()
   }
@@ -121,7 +203,7 @@ onUnmounted(() => {
         <div class="inline-flex gap-1">
           <button
             type="button"
-            @click="studyMode = 'order'"
+            @click="setMode('order')"
             :class="[
               'inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer',
               studyMode === 'order'
@@ -135,7 +217,7 @@ onUnmounted(() => {
 
           <button
             type="button"
-            @click="studyMode = 'random'"
+            @click="setMode('random')"
             :class="[
               'inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer',
               studyMode === 'random'
@@ -186,8 +268,11 @@ onUnmounted(() => {
     <div v-if="currentCard" class="pt-2">
       <HiraganaCard
         :item="currentCard"
+        :front-item="frontCard"
+        :back-item="backCard"
         :direction="studyDirection"
         :is-flipped="isFlipped"
+        :is-transitioning="isTransitioning"
         @flip="toggleFlip"
       />
     </div>
@@ -202,8 +287,9 @@ onUnmounted(() => {
         <button
           type="button"
           @click="restartStudy"
+          :disabled="isTransitioning"
           title="Học lại từ đầu"
-          class="p-1 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-slate-100 transition-colors cursor-pointer"
+          class="p-1 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
         >
           <RotateCcw class="w-3.5 h-3.5" />
         </button>
@@ -214,10 +300,10 @@ onUnmounted(() => {
         <button
           type="button"
           @click="prevCard"
-          :disabled="currentIndex === 0"
+          :disabled="isTransitioning || currentIndex === 0"
           :class="[
             'flex-1 h-13 flex items-center justify-center rounded-2xl border transition-all cursor-pointer select-none active:scale-95',
-            currentIndex === 0
+            currentIndex === 0 || isTransitioning
               ? 'border-slate-200 bg-slate-100 text-slate-300 cursor-not-allowed'
               : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 shadow-xs'
           ]"
@@ -229,7 +315,11 @@ onUnmounted(() => {
         <button
           type="button"
           @click="toggleFlip"
-          class="flex-1 h-13 flex items-center justify-center rounded-2xl bg-slate-900 hover:bg-slate-800 text-white transition-all cursor-pointer select-none active:scale-95 shadow-sm"
+          :disabled="isTransitioning"
+          :class="[
+            'flex-1 h-13 flex items-center justify-center rounded-2xl bg-slate-900 hover:bg-slate-800 text-white transition-all cursor-pointer select-none active:scale-95 shadow-sm',
+            isTransitioning ? 'opacity-70 cursor-not-allowed' : ''
+          ]"
           title="Lật thẻ"
         >
           <RotateCw :class="['w-5 h-5 stroke-[2.2] text-rose-400 transition-transform duration-300', isFlipped && 'rotate-180']" />
@@ -239,7 +329,11 @@ onUnmounted(() => {
         <button
           type="button"
           @click="nextCard"
-          class="flex-1 h-13 flex items-center justify-center rounded-2xl bg-rose-500 hover:bg-rose-600 text-white shadow-xs transition-all cursor-pointer select-none active:scale-95"
+          :disabled="isTransitioning"
+          :class="[
+            'flex-1 h-13 flex items-center justify-center rounded-2xl bg-rose-500 hover:bg-rose-600 text-white shadow-xs transition-all cursor-pointer select-none active:scale-95',
+            isTransitioning ? 'opacity-70 cursor-not-allowed' : ''
+          ]"
           :title="currentIndex === cards.length - 1 ? 'Đã hết - Nhấn để học lại' : 'Thẻ tiếp theo'"
         >
           <RotateCcw v-if="currentIndex === cards.length - 1" class="w-5 h-5 stroke-[2.5]" />
